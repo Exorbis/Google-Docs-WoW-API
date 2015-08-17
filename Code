@@ -1,0 +1,439 @@
+/*
+ 
+*/
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Update Tab')
+      .addItem('Update single Character', 'menuItem1')
+      .addItem('Update all Characters (select first)', 'menuItem2')
+      //.addItem('Update single Audit','menuItem3')
+      //.addItem('Update Column Audit','menuItem4')
+      /*.addSeparator()
+      .addSubMenu(ui.createMenu('Sub-menu')
+          .addItem('Second item', 'menuItem2'))
+       */
+      .addToUi();
+}
+ 
+function menuItem1() {
+  sheet = SpreadsheetApp.getActiveSheet();
+  nRow = sheet.getActiveSelection().getRow();
+  nColumn = sheet.getActiveSelection().getColumn();
+  updateSingleChar(sheet, nRow, nColumn);
+}
+ 
+function menuItem2() {
+  sheet = SpreadsheetApp.getActiveSheet();
+  nColumn = sheet.getActiveSelection().getColumn();
+  updateChars(sheet,nColumn);
+}
+ 
+function menuItem3() {
+  sheet = SpreadsheetApp.getActiveSheet();
+  nRow = sheet.getActiveSelection().getRow();
+  nColumn = sheet.getActiveSelection().getColumn();
+  updateSingleAudit(sheet, nRow, nColumn);
+}
+ 
+function menuItem4() {
+  sheet = SpreadsheetApp.getActiveSheet();
+  nColumn = sheet.getActiveSelection().getColumn();
+  updateAudits(sheet,nColumn);
+}
+ 
+ 
+function updateRow(sheet,row) {
+  for (var j=2;j<15;j=j+3) {
+      updateSingleChar(sheet,row,j);
+    }
+}
+ 
+function updateAudits(sheet,column) {
+if ((sheet.getSheetName()== "Roster") || (sheet.getSheetName()== "Raidcomp")) {  
+  for (var i=10;i<52;i++) {
+    //if (sheet.getSheetName()== "Raidcomp") { continue; }
+    var spreadsheet = SpreadsheetApp.getActive();
+    var mySheet = sheet;
+    var realmName = "Tarren-Mill"
+    var toonName = mySheet.getRange(i, column, 1, 1).getValue();
+    toonName = toonName.split(" ")[0];  
+    var newRealmName = toonName.split("-")[1];
+    toonName = toonName.split("-")[0];
+    if (newRealmName) {
+      var parts = newRealmName.match(/([A-Z]?[^A-Z]*)/g).slice(0,-1)
+      realmName = parts.join("-")
+    }
+    if (toonName == "") {
+      mySheet.getRange(i,column+2,1,1).clearNote();
+    }  
+    else {
+      var toon = "";
+      try
+      {      
+        var fetchUrl = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=items,audit"
+        var toonJSON = UrlFetchApp.fetch(fetchUrl);
+        toon = Utilities.jsonParse(toonJSON.getContentText());
+        var noGemsEnchants = false
+        var issues = 0
+        var giftindex = [5310, 5317, 5311, 5324, 5318, 5325, 5312, 5319, 5326, 5313, 5320, 5327, 5314, 5321, 5328],
+            breathindex = [5281, 5285, 5284, 5298, 5292, 5297, 5300, 5293, 5299, 5302, 5294, 5301, 5304, 5295, 5303]
+        var enchantsByItem = function(item,slot){
+          if (item) {
+            var enchant
+            if (giftindex.indexOf(item.tooltipParams["enchant"]) > -1) {
+              enchant = ""
+            } else if (breathindex.indexOf(item.tooltipParams["enchant"]) > -1) {
+              enchant = slot+" Bad Enchant, "
+              issues +=1
+            } else {
+              enchant = slot+" No Enchant, "
+              noGemsEnchants = true
+              issues +=1
+            }
+          }
+          else { enchant = "N/A" }
+          return enchant
+        }
+        var neckchant = enchantsByItem(toon.items.neck,"Neck"),
+            backchant = enchantsByItem(toon.items.back,"Back"),
+            finger1chant = enchantsByItem(toon.items.finger1,"Finger1"),
+            finger2chant = enchantsByItem(toon.items.finger2,"Finger2")
+        var grgemindex = [115809, 115811, 115812, 115813, 115814, 115815],
+            gemindex = [115803, 115804, 115805, 115806, 115807, 115808]
+        var getItemGem = function(item,slot){
+          if (item) {
+            if (item.bonusLists.indexOf(565) <0) { //Mythic Socketed
+              if (item.bonusLists.indexOf(564) <0) { //Heroic Socketed
+                if (item.bonusLists.indexOf(563) <0) { //Normal Socketed
+                  if (item.bonusLists.indexOf(523) <0) { // Dungeon Socketed
+                    return ""
+                  }
+                }
+              }
+            }          
+            if (grgemindex.indexOf(item.tooltipParams["gem0"]) > -1) {
+              return ""
+            } else if (gemindex.indexOf(item.tooltipParams["gem0"]) > -1) {
+              issues +=1
+              return slot+" Bad Gem, "
+            } else if (gemindex.indexOf(item.tooltipParams["gem0"]) < 0) {
+              noGemsEnchants = true
+              issues +=1
+              return slot+" No Gem, "
+            }
+            return ""
+          }
+        }
+        var head = getItemGem(toon.items.head,"Head"),
+            neck = getItemGem(toon.items.neck,"Neck"),
+            shoulders = getItemGem(toon.items.shoulder,"Shoulders"),
+            back = getItemGem(toon.items.back,"Back"),
+            chest = getItemGem(toon.items.chest,"Chest"),
+            wrist = getItemGem(toon.items.wrist,"Wrist"),
+            hands = getItemGem(toon.items.hands,"Hands"),
+            waist = getItemGem(toon.items.waist,"Waist"),
+            legs = getItemGem(toon.items.legs,"Legs"),
+            feet = getItemGem(toon.items.feet,"Feet"),
+            finger1 = getItemGem(toon.items.finger1,"Finger1"),
+            finger2 = getItemGem(toon.items.finger2,"Finger2"),
+            trinket1 = getItemGem(toon.items.trinket1,"Trinket1"),
+            trinket2 = getItemGem(toon.items.trinket2,"Trinket2"),
+            mainHand = getItemGem(toon.items.mainHand,"Mainhand"),
+            offHand = ""
+        if (toon.items.offHand) {offHand = getItemGem(toon.items.offHand,"Offhand")}
+        var gems = head+neck+neckchant+shoulders+back+backchant+chest+wrist+hands+waist+legs+feet+finger1+finger1chant+finger2+finger2chant+trinket1+trinket2+mainHand+offHand
+        //if (noGemsEnchants) {gems = gems +"*"}
+        //gems = gems.slice(0,gems.length-2)
+        mySheet.getRange(i,column+2,1,1).clearNote();
+        mySheet.getRange(i,column+2,1,1).setValue(issues);
+        mySheet.getRange(i,column+2,1,1).setNote(gems);
+       
+       
+        if (noGemsEnchants) {
+          mySheet.getRange(i,column+2,1,1).setFontColor('black')
+        } else if(gems.length>0) {      
+          mySheet.getRange(i,column+2,1,1).setFontColor('black')
+        } else {
+          mySheet.getRange(i,column+2,1,1).setFontColor('white')
+          mySheet.getRange(i,column+2,1,1).setBackgroundColor('white')
+        }
+       
+      }
+      catch(err)
+      {
+      }
+      Utilities.sleep(500)        
+    }
+  }
+}
+}
+ 
+ 
+ 
+function updateSingleAudit(sheet,row,column) {
+  var spreadsheet = SpreadsheetApp.getActive();
+  var mySheet = sheet;
+  var realmName = "Roster"
+  var toonName = mySheet.getRange(row, column, 1, 1).getValue();
+  toonName = toonName.split(" ")[0];  
+  var newRealmName = toonName.split("-")[1];
+  toonName = toonName.split("-")[0];
+  if (newRealmName) {
+    var parts = newRealmName.match(/([A-Z]?[^A-Z]*)/g).slice(0,-1)
+    realmName = parts.join("-")
+  }
+ 
+  if (toonName == "") {
+    mySheet.getRange(row,column+2,1,1).clearNote();
+  }  
+  else {
+    var toon = "";
+    try
+    {    
+      var fetchUrl = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=items,audit"
+      var toonJSON = UrlFetchApp.fetch(fetchUrl);
+      toon = Utilities.jsonParse(toonJSON.getContentText());
+      var noGemsEnchants = false
+      var issues = 0      
+      var giftindex = [5310, 5317, 5311, 5324, 5318, 5325, 5312, 5319, 5326, 5313, 5320, 5327, 5314, 5321, 5328],
+          breathindex = [5281, 5285, 5284, 5298, 5292, 5297, 5300, 5293, 5299, 5302, 5294, 5301, 5304, 5295, 5303]
+      var enchantsByItem = function(item,slot){
+        if (item) {
+          var enchant
+          if (giftindex.indexOf(item.tooltipParams["enchant"]) > -1) {
+            enchant = ""
+          } else if (breathindex.indexOf(item.tooltipParams["enchant"]) > -1) {
+            enchant = slot+" Bad Enchant, "
+            issues +=1
+          } else {
+            enchant = slot+" No Enchant, "
+            noGemsEnchants = true
+            issues +=1
+          }
+        }
+        else { enchant = "N/A" }
+        return enchant
+      }
+      var neckchant = enchantsByItem(toon.items.neck,"Neck"),
+          backchant = enchantsByItem(toon.items.back,"Back"),
+          finger1chant = enchantsByItem(toon.items.finger1,"Finger1"),
+          finger2chant = enchantsByItem(toon.items.finger2,"Finger2")
+      var grgemindex = [115809, 115811, 115812, 115813, 115814, 115815],
+          gemindex = [115803, 115804, 115805, 115806, 115807, 115808]
+      var getItemGem = function(item,slot){
+        if (item) {
+          if (item.bonusLists.indexOf(565) <0) { //Mythic Socketed
+            if (item.bonusLists.indexOf(564) <0) { //Heroic Socketed
+              if (item.bonusLists.indexOf(563) <0) { //Normal Socketed
+                if (item.bonusLists.indexOf(523) <0) { // Dungeon Socketed
+                  return ""
+                }
+              }
+            }
+          }          
+          if (grgemindex.indexOf(item.tooltipParams["gem0"]) > -1) {
+            return ""
+          } else if (gemindex.indexOf(item.tooltipParams["gem0"]) > -1) {
+            issues +=1
+            return slot+" Bad Gem, "
+          } else if (gemindex.indexOf(item.tooltipParams["gem0"]) < 0) {
+            issues +=1
+            noGemsEnchants = true
+            return slot+" No Gem, "
+          }
+          return ""
+        }
+      }
+      var head = getItemGem(toon.items.head,"Head"),
+          neck = getItemGem(toon.items.neck,"Neck"),
+          shoulders = getItemGem(toon.items.shoulder,"Shoulders"),
+          back = getItemGem(toon.items.back,"Back"),
+          chest = getItemGem(toon.items.chest,"Chest"),
+          wrist = getItemGem(toon.items.wrist,"Wrist"),
+          hands = getItemGem(toon.items.hands,"Hands"),
+          waist = getItemGem(toon.items.waist,"Waist"),
+          legs = getItemGem(toon.items.legs,"Legs"),
+          feet = getItemGem(toon.items.feet,"Feet"),
+          finger1 = getItemGem(toon.items.finger1,"Finger1"),
+          finger2 = getItemGem(toon.items.finger2,"Finger2"),
+          trinket1 = getItemGem(toon.items.trinket1,"Trinket1"),
+          trinket2 = getItemGem(toon.items.trinket2,"Trinket2"),
+          mainHand = getItemGem(toon.items.mainHand,"Mainhand"),
+          offHand = ""
+      if (toon.items.offHand) {offHand = getItemGem(toon.items.offHand,"Offhand")}
+      var gems = head+neck+neckchant+shoulders+back+backchant+chest+wrist+hands+waist+legs+feet+finger1+finger1chant+finger2+finger2chant+trinket1+trinket2+mainHand+offHand
+      //if (noGemsEnchants) {gems = gems +"*"}
+      //gems = gems.slice(0,gems.length-2)
+      mySheet.getRange(row,column+2,1,1).clearNote();
+      mySheet.getRange(row,column+2,1,1).setValue(issues);
+      mySheet.getRange(row,column+2,1,1).setNote(gems);
+     
+      if (noGemsEnchants) {
+        mySheet.getRange(row,column+2,1,1).setFontColor('black')
+      } else if(gems.length>0) {      
+        mySheet.getRange(row,column+2,1,1).setFontColor('black')
+      } else {
+        mySheet.getRange(row,column+2,1,1).setFontColor('white')
+        mySheet.getRange(row,column+2,1,1).setBackgroundColor('white')
+      }
+     
+    }
+    catch(err)
+    {
+    }
+    Utilities.sleep(500)  
+  }
+}
+   
+ 
+ 
+function updateSingleChar(sheet,row,column) {
+  var spreadsheet = SpreadsheetApp.getActive();
+  var mySheet = sheet;
+  var realmName = "Tarren-Mill"
+  var toonName = mySheet.getRange(row, column, 1, 1).getValue();
+  toonName = toonName.split(" ")[0];
+  if (toonName == "") {
+  }
+ 
+  var newRealmName = toonName.split("-")[1];
+  toonName = toonName.split("-")[0];
+  if (newRealmName) {
+    var parts = newRealmName.match(/([A-Z]?[^A-Z]*)/g).slice(0,-1)
+    realmName = parts.join("-")
+  }
+ 
+  if (toonName == "") {
+  }  
+  else {
+    // Character information
+    var toon = "";
+    var toonGuild = "";
+    try
+    {
+      var fetchUrl = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=items,professions"
+      var fetchUrlGuild = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=guild"
+      var toonJSON = UrlFetchApp.fetch(fetchUrl);
+      var toonJSONGuild = UrlFetchApp.fetch(fetchUrlGuild);
+      toon = Utilities.jsonParse(toonJSON.getContentText());
+      toonGuild = Utilities.jsonParse(toonJSONGuild.getContentText());
+      var ilvl= new Array(
+        ""+toon.items.averageItemLevelEquipped
+      )
+      var guildGet = new Array(
+        ""+toonGuild.guild.name
+        )
+      var lvl= new Array(
+        "L"+toon.level
+      )
+      var quotationMarks = "\""
+      mySheet.getRange(row,column+1,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+ilvl[0]+')');
+      mySheet.getRange(row,column+3,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+quotationMarks+''+guildGet[0]+''+quotationMarks+')');
+    }
+    catch(err)
+    {
+     
+    }
+    
+    }
+    Utilities.sleep(500)        
+  }  
+
+ 
+ 
+function updateChars(sheet,column) {
+ 
+  var spreadsheet = SpreadsheetApp.getActive();
+ 
+ 
+ 
+  if (sheet.getSheetName()== "Roster") {  
+    for (var i=10;i<52;i++) {
+      var row = sheet.getRange(i, 2, 1, 15);
+      var j = column;
+      var toonName = sheet.getRange(i, j, 1, 1).getValue();
+      var realmName = "Tarren-Mill"
+      toonName = toonName.split(" ")[0];
+     
+      if (toonName == "") {
+      }
+      var newRealmName = toonName.split("-")[1];
+      toonName = toonName.split("-")[0];
+      if (newRealmName) {
+        var parts = newRealmName.match(/([A-Z]?[^A-Z]*)/g).slice(0,-1)
+        realmName = parts.join("-")
+      }
+           
+      if (toonName == "") {
+      }
+      else {
+        // Character information
+        var toon = "";
+        try
+        {
+          var fetchUrl = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=items,professions"
+          var toonJSON = UrlFetchApp.fetch(fetchUrl);
+          toon = Utilities.jsonParse(toonJSON.getContentText());
+          var ilvl= new Array(
+            ""+toon.items.averageItemLevelEquipped
+          )
+          var lvl= new Array(
+            "L"+toon.level
+          )
+          sheet.getRange(i,j+1,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+ilvl[0]+')');
+        }
+        catch(err)
+        {
+         
+        }
+        Utilities.sleep(1000)
+        // Collated information we're going to output...  
+       
+      }    
+    }
+  } else if (sheet.getSheetName()== "Raidcomp") {
+    for (var i=5;i<52;i++) {
+      var row = sheet.getRange(i, 2, 1, 15);
+      var j = column;
+      var toonName = sheet.getRange(i, j, 1, 1).getValue();
+      var realmName = "Tarren-Mill"
+      toonName = toonName.split(" ")[0];
+     
+      if (toonName == "") {
+      }
+      var newRealmName = toonName.split("-")[1];
+      toonName = toonName.split("-")[0];
+      if (newRealmName) {
+        var parts = newRealmName.match(/([A-Z]?[^A-Z]*)/g).slice(0,-1)
+        realmName = parts.join("-")
+      }
+           
+      if (toonName == "") {
+      }
+      else {
+        // Character information
+        var toon = "";
+        try
+        {
+          var fetchUrl = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=items,professions"
+          var toonJSON = UrlFetchApp.fetch(fetchUrl);
+          toon = Utilities.jsonParse(toonJSON.getContentText());
+          var ilvl= new Array(
+            ""+toon.items.averageItemLevelEquipped
+          )
+          var lvl= new Array(
+            "L"+toon.level
+          )
+          sheet.getRange(i,j+1,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+ilvl[0]+')');
+        }
+        catch(err)
+        {
+        }
+        Utilities.sleep(1000)
+        // Collated information we're going to output...  
+       
+      }    
+    }
+  } else {
+  }
+}
