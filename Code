@@ -297,6 +297,7 @@ function updateSingleChar(sheet,row,column) {
       ui.ButtonSet.OK_CANCEL);
   var button = userChoice.getSelectedButton();
   var realmName = userChoice.getResponseText();
+  
   var toonName = mySheet.getRange(row, column, 1, 1).getValue();
   toonName = toonName.split(" ")[0];
   if (toonName == "") {
@@ -351,16 +352,43 @@ function updateChars(sheet,column) {
   var ui = SpreadsheetApp.getUi();
   var spreadsheet = SpreadsheetApp.getActive();
  
- 
+  var userInput = ui.prompt(
+      'Tank Count',
+      'Please number of tanks (numerical value only)',
+      ui.ButtonSet.OK_CANCEL);
+  var button = userInput.getSelectedButton();
+  var tankCount = userInput.getResponseText();
+  
+  var userInputHealer = ui.prompt(
+      'Tank Count',
+      'Please number of healers (numerical value only)',
+      ui.ButtonSet.OK_CANCEL);
+  var button = userInputHealer.getSelectedButton();
+  var healerCount = userInputHealer.getResponseText();
+  
+  var userInputDPS = ui.prompt(
+      'Tank Count',
+      'Please number of DPS (numerical value only)',
+      ui.ButtonSet.OK_CANCEL);
+  var button = userInputDPS.getSelectedButton();
+  var DPSCount = userInputDPS.getResponseText();
+  
  
   if (sheet.getSheetName()== "Roster") {  
     for (var i=10;i<52;i++) {
+        
       var row = sheet.getRange(i, 2, 1, 15);
       var j = column;
+        
       var toonName = sheet.getRange(i, j, 1, 1).getValue();
+      var toonCount = String(toonName);
+      if (toonCount.length <= 2){
+       continue; 
+      }
+      
       var userChoice = ui.prompt(
       'Realm Required',
-      'Please enter realm for' +toonName+ ':',
+      'Please enter realm for ' +toonName+ ':',
       ui.ButtonSet.OK_CANCEL);
       var button = userChoice.getSelectedButton();
       var realmName = userChoice.getResponseText();
