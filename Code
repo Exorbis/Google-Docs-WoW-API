@@ -335,7 +335,6 @@ function updateSingleChar(sheet,row,column) {
       var quotationMarks = "\""
       mySheet.getRange(row,column+1,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+ilvl[0]+')');
       mySheet.getRange(row,column+3,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+quotationMarks+''+guildGet[0]+''+quotationMarks+')');
-      mySheet.getRange(row,column+2,1,1).setFormula(quotationMarks, realmName, quotationMarks);
     }
     catch(err)
     {
@@ -349,7 +348,7 @@ function updateSingleChar(sheet,row,column) {
  
  
 function updateChars(sheet,column) {
- 
+  var ui = SpreadsheetApp.getUi();
   var spreadsheet = SpreadsheetApp.getActive();
  
  
@@ -359,7 +358,12 @@ function updateChars(sheet,column) {
       var row = sheet.getRange(i, 2, 1, 15);
       var j = column;
       var toonName = sheet.getRange(i, j, 1, 1).getValue();
-      var realmName = "Tarren-Mill"
+      var userChoice = ui.prompt(
+      'Realm Required',
+      'Please enter realm for' +toonName+ ':',
+      ui.ButtonSet.OK_CANCEL);
+      var button = userChoice.getSelectedButton();
+      var realmName = userChoice.getResponseText();
       toonName = toonName.split(" ")[0];
      
       if (toonName == "") {
@@ -376,18 +380,27 @@ function updateChars(sheet,column) {
       else {
         // Character information
         var toon = "";
+        var toonGuild = "";
         try
         {
           var fetchUrl = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=items,professions"
+          var fetchUrlGuild = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=guild"
           var toonJSON = UrlFetchApp.fetch(fetchUrl);
+          var toonJSONGuild = UrlFetchApp.fetch(fetchUrlGuild);
           toon = Utilities.jsonParse(toonJSON.getContentText());
+          toonGuild = Utilities.jsonParse(toonJSONGuild.getContentText());
           var ilvl= new Array(
             ""+toon.items.averageItemLevelEquipped
+          )
+          var guildGet = new Array(
+            ""+toonGuild.guild.name
           )
           var lvl= new Array(
             "L"+toon.level
           )
+          var quotationMarks = "\""
           sheet.getRange(i,j+1,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+ilvl[0]+')');
+          sheet.getRange(i,j+3,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+quotationMarks+''+guildGet[0]+''+quotationMarks+')');
         }
         catch(err)
         {
@@ -420,18 +433,27 @@ function updateChars(sheet,column) {
       else {
         // Character information
         var toon = "";
+        var toonGuild = "";
         try
         {
           var fetchUrl = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=items,professions"
+          var fetchUrlGuild = "eu.battle.net/api/wow/character/"+realmName+"/"+toonName+"?fields=guild"
           var toonJSON = UrlFetchApp.fetch(fetchUrl);
+          var toonJSONGuild = UrlFetchApp.fetch(fetchUrlGuild);
           toon = Utilities.jsonParse(toonJSON.getContentText());
+          toonGuild = Utilities.jsonParse(toonJSONGuild.getContentText());
           var ilvl= new Array(
             ""+toon.items.averageItemLevelEquipped
+          )
+          var guildGet = new Array(
+            ""+toonGuild.guild.name
           )
           var lvl= new Array(
             "L"+toon.level
           )
+          var quotationMarks = "\""
           sheet.getRange(i,j+1,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+ilvl[0]+')');
+          sheet.getRange(i,j+3,1,1).setFormula('=HYPERLINK("http://eu.battle.net/wow/en/character/'+realmName+'/'+toonName+'/advanced",'+quotationMarks+''+guildGet[0]+''+quotationMarks+')');
         }
         catch(err)
         {
